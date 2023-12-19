@@ -89,42 +89,12 @@
               (list (make-letter-count "a" 3) (make-letter-count "b" 2)))
 
 
-(define (count-by-letter.v2 lod)
-  ; ListOfDictionary -> ListOfLetterCounts
-  ; assembles a ListOfLetterCounts associated with a given ListOfDictionaries
-  ;     organized by leading letter
-  (cond
-    [(empty? lod) '()]
-    [else (cons
-           (make-letter-count
-            (string-downcase (string-ith (first (first lod)) 0))
-            (length (first lod)))
-           (count-by-letter.v2 (rest lod)))]))
-;checks
-(check-expect (count-by-letter.v2 (list (list "a")))
-              (list (make-letter-count "a" 1)))
-(check-expect (count-by-letter.v2 (list (list "a" "ab")))
-              (list (make-letter-count "a" 2)))
-(check-expect (count-by-letter.v2  (list (list "a" "ab" "abc")))
-              (list (make-letter-count "a" 3)))
-(check-expect (count-by-letter.v2 
-               (list (list "a" "ab" "Abc") (list "b" "bb")))
-              (list (make-letter-count "a" 3) (make-letter-count "b" 2)))
-
-
 (define (most-frequent dicto)
   ; Dictionary -> LetterCount
   ; determines the number of words that start with of the most
   ;     common initial letter
   (max-count (count-by-letter dicto)))
 
-
-(define (most-frequent.v2 dicto)
-  ; Dictionary -> LetterCount
-  ; determines the number of words that start with of the most
-  ;     common initial letter
-  (max-count (count-by-letter.v2 (words-by-leading-letter dicto))))
- 
 
 (define (words-by-leading-letter dicto)
   ; Dictionary -> ListOfDictionaries
