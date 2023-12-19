@@ -71,15 +71,27 @@
   ; Dictionary -> ListOfLetterCounts
   ; assembles a ListOfLetterCounts associated with a given Dictionary
   (cond
+    ; We begin construction of the ListOfLetterCounts only after completely
+    ;     recursing through the Dictionary. The first step is to initialize
+    ;     the LetterCount for the leading (lowercase) letter of the last
+    ;     element of the Dictionary and set its count to 1.
     [(empty? (rest dicto))
      (list (make-letter-count
             (string-downcase (string-ith (first dicto) 0)) 1))]
-    [(string-ci=? (string-ith (first dicto) 0)
-                  (string-ith (first (rest dicto)) 0))
+    ; If the leading letter of the first and second elements remaining in the
+    ;     Dictionary are equal, we simply increment the count of the active
+    ;     LetterCount by 1. We do this in an auxiliary function, and1
+    [(starts-with=? (first dicto) (second dicto))
      (and1 (count-by-letter (rest dicto)))]
-    [else (cons (make-letter-count
-                 (string-downcase (string-ith (first dicto) 0)) 1)
-                (count-by-letter (rest dicto)))]))
+    ; Else the leading letter of the first and second elements remaining
+    ;     in the Dictionary are different. We now need to close out the
+    ;     current LetterCount and initialize a new one for the prior
+    ;     (lowercase) letter in reverse alphabetical order,
+    ;     setting its count to 1
+    [(not (starts-with=? (first dicto) (second dicto)))
+     (cons (make-letter-count
+            (string-downcase (string-ith (first dicto) 0)) 1)
+           (count-by-letter (rest dicto)))]))
 ; checks
 (check-expect (count-by-letter (list "a"))
               (list (make-letter-count "a" 1)))
@@ -101,12 +113,26 @@
   ; assembles a ListOfDictionaries associated with a given Dictionary,
   ;      one per leading letter
   (cond
+    ; We begin construction of the ListOfDictionaries only after completely
+    ;     recursing through the Dictionary. The first step is to initialize
+    ;     a Dictionary for the leading letter of the final word, and add
+    ;     that final word to it.
     [(empty? (rest dicto)) (list (list (first dicto)))]
-    [(string-ci=? (string-ith (first dicto) 0)
-                  (string-ith (first (rest dicto)) 0))
-     (compile-subdictionaries (first dicto) (words-by-leading-letter (rest dicto)))]
-    [else (cons (list (first dicto))
-                (words-by-leading-letter (rest dicto)))]))
+    ; If the leading letter of the first and second elements remaining in the
+    ;     Dictionary are equal, we simply add the first remaining word to the
+    ;     active Dictionary. We do this in an auxiliary function,
+    ;     compile-subdictionaries
+    [(starts-with=? (first dicto) (second dicto))
+     (compile-subdictionaries (first dicto)
+                              (words-by-leading-letter (rest dicto)))]
+    ; Else the leading letter of the first and second elements remaining
+    ;     in the Dictionary are different. We now need to close out the
+    ;     current Dictionary and initialize a new one for the prior
+    ;     (lowercase) letter in reverse alphabetical order,
+    ;     ading the first remaining word to it.
+    [(not (starts-with=? (first dicto) (second dicto)))
+     (cons (list (first dicto))
+           (words-by-leading-letter (rest dicto)))]))
 ; checks
 (check-expect (words-by-leading-letter (list "a"))
               (list (list "a")))
@@ -116,6 +142,16 @@
               (list (list "a" "ab" "abc")))
 (check-expect (words-by-leading-letter (list "a" "ab" "Abc" "b" "bb"))
               (list (list "a" "ab" "Abc") (list "b" "bb")))
+
+
+(define (starts-with=? str1 str2)
+  ; String String -> Boolean
+  ; determines if two strings srart with the same letter
+  (string-ci=? (string-ith str1 0) (string-ith str2 0)))
+; checks
+(check-expect (starts-with=? "walla" "washington") #t)
+(check-expect (starts-with=? "a" "beta") #f)
+(check-expect (starts-with=? "the" "Thing") #t)
 
 
 (define (and1 llc)
@@ -157,8 +193,5 @@
 
 ; actions
 
-;(count-by-letter AS-LIST)
-
-(check-expect (most-frequent AS-LIST) (most-frequent.v2 AS-LIST))
-
-;(first (words-by-leading-letter AS-LIST))
+(most-frequent AS-LIST)
+(length (first (words-by-leading-letter AS-LIST)))
