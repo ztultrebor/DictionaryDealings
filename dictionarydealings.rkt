@@ -88,10 +88,9 @@
     ;     current LetterCount and initialize a new one for the prior
     ;     (lowercase) letter in reverse alphabetical order,
     ;     setting its count to 1
-    [(not (starts-with=? (first dicto) (second dicto)))
-     (cons (make-letter-count
-            (string-downcase (string-ith (first dicto) 0)) 1)
-           (count-by-letter (rest dicto)))]))
+    [else  (cons (make-letter-count
+                  (string-downcase (string-ith (first dicto) 0)) 1)
+                 (count-by-letter (rest dicto)))]))
 ; checks
 (check-expect (count-by-letter (list "a"))
               (list (make-letter-count "a" 1)))
