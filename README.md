@@ -1,0 +1,1 @@
+Simple program for manipulating and metadating a built-in dictionary. There's a really nice example of using recursion to iterate over the dictionary but once as opposed to iterating over (part of) the dictionary once for each letter of the alphabet
