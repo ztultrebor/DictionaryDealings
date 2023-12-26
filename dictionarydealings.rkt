@@ -3,7 +3,12 @@
 #reader(lib "htdp-intermediate-reader.ss" "lang")((modname dictionarydealings) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
 (require 2htdp/batch-io)
 
-; A Dictionary is a List-of-strings.
+
+
+; data definitions
+
+; A Dictionary is a [ListOf String]
+; it is presumed to already be sorted alphabetically
 #;;
 (define (fn-wit-dictionary d)
   (cond
@@ -11,64 +16,62 @@
     [else ... (first d) ... (fn-wit-dictionary (rest d))]))
 
 
-; A Letter is one of the following 1Strings: 
-; – "a"
-; – ... 
-; – "z"
-(define (letter? c)
-  (member? c LETTERS))
-; checks
-(check-expect (letter? "h") #t)
-(check-expect (letter? " ") #f)
-(check-expect (letter? 8) #f)
-(check-expect (letter? "ph") #f)
-(check-expect (letter? "M") #f)
-#;
-(define (fn-wit-letter c)
-  (cond
-    [(not (letter? c)) (error "not a letter")]
-    [else ... c]))
-
-
 (define-struct letter-count [letter count])
-; A LetterCount is a (make-letter-count [Letter Natural])
-
-; A ListOfLetterCounts is one of
-;     - (list)
-;     - (cons LetterCount ListOfLetterCounts)
-(define (list-of-letter-counts? llc)
-  (or
-   (empty? llc)
-   (and
-    (string? (letter-count-letter (first llc)))
-    (number? (letter-count-count (first llc)))
-    (list-of-letter-counts? (rest llc)))))
+; A LetterCount is a [1String Natural]
 #;
-(define (fn-wit-letter-count llc)
+(define (fn-wit-letter-count lc)
+  (... (fn-on-1str (letter-count-letter lc))
+       ... (fn-on-natural (letter-count-count lc))))
+
+
+; A [ListOf LetterCount] is one of
+;     - '()
+;     - (cons LetterCount [ListOf LetterCount])
+#;
+(define (fn-wit-lolc llc)
   (cond
     [(empty? llc) ...]
-    [else  (letter-count-letter (first llc)) (letter-count-count (first llc))
-           ... (fn-wit-letter-count (rest llc))]))
+    [else  (fn-wit-letter-count (first llc)) ... (fn-wit-lolc (rest llc))]))
+
+
+
+; constants
+
+(define LOCATION "/usr/share/dict/words")
+(define AS-LIST (read-lines LOCATION))
+
 
 
 ; abstract functions
 
-
-(define (recursive dicto f1 f2)
-  ; [ListOf String] -> [ListOf X]
+(define (recurse-over-dict dicto f1 f2)
+  ; [ListOf String]
+  ; [String ListOf X] -> ListOf X]
+  ; [String ListOf X] -> ListOf X]
+  ; -> [ListOf X]
   ; assembles a [ListOf X] associated with a given Dictionary
   (local (
           (define list-of-results
             ; this is the [ListOf X], constructed from right to left
             (cond
               [(empty? (rest dicto)) '()]
-              [else (recursive (rest dicto) f1 f2)])))
+              [else (recurse-over-dict (rest dicto) f1 f2)])))
     ; - IN -
     (cond
       [(empty? (rest dicto)) (f1 (first dicto) list-of-results)]
       [(starts-with=? (first dicto) (second dicto))
        (f2 (first dicto) list-of-results)]
       [else (f1 (first dicto) list-of-results)])))
+
+
+(define (starts-with=? str1 str2)
+  ; String String -> Boolean
+  ; determines if two strings srart with the same letter
+  (string-ci=? (string-ith str1 0) (string-ith str2 0)))
+; checks
+(check-expect (starts-with=? "walla" "washington") #t)
+(check-expect (starts-with=? "a" "beta") #f)
+(check-expect (starts-with=? "the" "Thing") #t)
 
 
 
@@ -89,31 +92,18 @@
 (check-expect (starts-with# "c" (list "dog" "cat" "cheese")) 0)
 
 
-(define (count-by-letter dicto)
-  ; !!! abstract this!
-  ; Dictionary -> ListOfLetterCounts
-  ; assembles a ListOfLetterCounts associated with a given Dictionary
-  (cond
-    ; We begin construction of the ListOfLetterCounts only after completely
-    ;     recursing through the Dictionary. The first step is to initialize
-    ;     the LetterCount for the leading (lowercase) letter of the last
-    ;     element of the Dictionary and set its count to 1.
-    [(empty? (rest dicto))
-     (list (make-letter-count
-            (string-downcase (string-ith (first dicto) 0)) 1))]
-    ; If the leading letter of the first and second elements remaining in the
-    ;     Dictionary are equal, we simply increment the count of the active
-    ;     LetterCount by 1. We do this in an auxiliary function, and1
-    [(starts-with=? (first dicto) (second dicto))
-     (and1 (count-by-letter (rest dicto)))]
-    ; Else the leading letter of the first and second elements remaining
-    ;     in the Dictionary are different. We now need to close out the
-    ;     current LetterCount and initialize a new one for the prior
-    ;     (lowercase) letter in reverse alphabetical order,
-    ;     setting its count to 1
-    [else  (cons (make-letter-count
-                  (string-downcase (string-ith (first dicto) 0)) 1)
-                 (count-by-letter (rest dicto)))]))
+(define (most-frequent dicto)
+  ; [ListOf String] -> LetterCount
+  ; determines the number of words that start with of the most
+  ;     common initial letter
+  (max-count (count-by-letter dicto)))
+
+
+(define (count-by-letter dicto);
+  ;[ListOf String] -> [ListOf LetterCount]
+  ; count the number of words in dictionary that start with each
+  ; letter of the alphabet, and output the result as a list of letter-counts
+  (recurse-over-dict dicto new-letter-count add-to-letter-count))
 ; checks
 (check-expect (count-by-letter (list "a"))
               (list (make-letter-count "a" 1)))
@@ -123,18 +113,11 @@
               (list (make-letter-count "a" 3) (make-letter-count "b" 2)))
 
 
-(define (most-frequent dicto)
-  ; Dictionary -> LetterCount
-  ; determines the number of words that start with of the most
-  ;     common initial letter
-  (max-count (count-by-letter dicto)))
-
-
 (define (words-by-leading-letter dicto)
   ; [ListOf String]
   ; [String [ListOf ListOf String] -> [ListOf ListOf String]]
   ; [String [ListOf ListOf String] -> [ListOf ListOf String]]
-  (recursive dicto in init-subdictionary compile-subdictionaries))
+  (recurse-over-dict dicto init-subdictionary compile-subdictionaries))
 ; checks
 (check-expect (words-by-leading-letter (list "a"))
               (list (list "a")))
@@ -144,6 +127,23 @@
               (list (list "a" "ab" "abc")))
 (check-expect (words-by-leading-letter (list "a" "ab" "Abc" "b" "bb"))
               (list (list "a" "ab" "Abc") (list "b" "bb")))
+
+
+(define (new-letter-count word llc)
+  ; String [ListOf LetterCount] -> [ListOf LetterCount]
+  ; initialize a new LetterCount object on transitioning from one
+  ; starting letter to the previous
+  (cons (make-letter-count
+         (string-downcase (string-ith word 0)) 1) llc))
+
+
+(define (add-to-letter-count _ llc)
+  ; String [ListOf LetterCount] -> [ListOf LetterCount]
+  ; increases the count of the first LetterCount by 1
+  (cons (make-letter-count
+         (letter-count-letter (first llc))
+         (+ (letter-count-count (first llc)) 1))
+        (rest llc)))
 
 
 (define (init-subdictionary word llc)
@@ -157,33 +157,8 @@
   (cons (cons word (first llc)) (rest llc)))
 
 
-(define (starts-with=? str1 str2)
-  ; String String -> Boolean
-  ; determines if two strings srart with the same letter
-  (string-ci=? (string-ith str1 0) (string-ith str2 0)))
-; checks
-(check-expect (starts-with=? "walla" "washington") #t)
-(check-expect (starts-with=? "a" "beta") #f)
-(check-expect (starts-with=? "the" "Thing") #t)
-
-
-(define (and1 llc)
-  ; ListOfLetterCounts -> ListOfLetterCounts
-  ; increases the count of the first LetterCount by 1
-  (cons (make-letter-count
-         (letter-count-letter (first llc))
-         (+ (letter-count-count (first llc)) 1))
-        (rest llc)))
-
-#;
-(define (compile-subdictionaries word llc)
-  ; ListOfDictionaries -> ListOfDictionaries
-  ; adds a String entry to the leading dictionary
-  (cons (cons word (first llc)) (rest llc)))
-
-
 (define (max-count llc)
-  ; ListOfLetterCounts -> LetterCount
+  ; [ListOf LetterCount] -> LetterCount
   ; extracts the maximum LetterCount according to count
   (cond
     [(empty? (rest llc)) (first llc)]
@@ -196,12 +171,6 @@
                      (make-letter-count "b" 7)))
               (make-letter-count "b" 7))
 
-
-
-; constants
-(define LETTERS (explode "abcdefghijklmnopqrstuvwxyz"))
-(define LOCATION "/usr/share/dict/words")
-(define AS-LIST (read-lines LOCATION))
 
 
 ; actions
