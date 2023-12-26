@@ -44,24 +44,23 @@
 
 ; abstract functions
 
-(define (recurse-over-dict dicto f1 f2)
+(define (recurse-over-dict dicto f-changes f-sameness)
   ; [ListOf String]
-  ; [String ListOf X] -> ListOf X]
-  ; [String ListOf X] -> ListOf X]
+  ; [String [ListOf X] -> [ListOf X]]
+  ; [String [ListOf X] -> [ListOf X]]
   ; -> [ListOf X]
   ; assembles a [ListOf X] associated with a given Dictionary
-  (local (
-          (define list-of-results
-            ; this is the [ListOf X], constructed from right to left
+  (cond
+    [(empty? (rest dicto)) (f-changes (first dicto) '())]
+    [else (local (
+                  (define list-of-results
+                    ; this is the [ListOf X], constructed from right to left
+                    (recurse-over-dict (rest dicto) f-changes f-sameness)))
+            ; - IN -
             (cond
-              [(empty? (rest dicto)) '()]
-              [else (recurse-over-dict (rest dicto) f1 f2)])))
-    ; - IN -
-    (cond
-      [(empty? (rest dicto)) (f1 (first dicto) list-of-results)]
-      [(starts-with=? (first dicto) (second dicto))
-       (f2 (first dicto) list-of-results)]
-      [else (f1 (first dicto) list-of-results)])))
+              [(starts-with=? (first dicto) (second dicto))
+               (f-sameness (first dicto) list-of-results)]
+              [else (f-changes (first dicto) list-of-results)]))]))
 
 
 (define (starts-with=? str1 str2)
@@ -165,6 +164,7 @@
     [(> (letter-count-count (first llc))
         (letter-count-count (max-count (rest llc)))) (first llc)]
     [else (max-count (rest llc))]))
+; checks
 (check-expect (max-count
                (list (make-letter-count "a" 5)
                      (make-letter-count "c" 1)
