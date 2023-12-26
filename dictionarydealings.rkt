@@ -52,15 +52,19 @@
   ; assembles a [ListOf X] associated with a given Dictionary
   (cond
     [(empty? (rest dicto)) (f-changes (first dicto) '())]
+    ; initialize [ListOf X]
     [else (local (
                   (define list-of-results
                     ; this is the [ListOf X], constructed from right to left
                     (recurse-over-dict (rest dicto) f-changes f-sameness)))
             ; - IN -
             (cond
+              ; continue on with same leading-letter
               [(starts-with=? (first dicto) (second dicto))
                (f-sameness (first dicto) list-of-results)]
+              ; complete computation on a leading letter; start work on next one
               [else (f-changes (first dicto) list-of-results)]))]))
+
 
 
 (define (starts-with=? str1 str2)
@@ -132,28 +136,31 @@
   ; String [ListOf LetterCount] -> [ListOf LetterCount]
   ; initialize a new LetterCount object on transitioning from one
   ; starting letter to the previous
-  (cons (make-letter-count
-         (string-downcase (string-ith word 0)) 1) llc))
+  (local (
+          (define leading-letter (string-downcase (string-ith word 0)))
+          (define new-lc (make-letter-count leading-letter 1)))
+    (cons new-lc llc)))
 
 
 (define (add-to-letter-count _ llc)
   ; String [ListOf LetterCount] -> [ListOf LetterCount]
   ; increases the count of the first LetterCount by 1
-  (cons (make-letter-count
-         (letter-count-letter (first llc))
-         (+ (letter-count-count (first llc)) 1))
-        (rest llc)))
+  (local (
+          (define letter (letter-count-letter (first llc)))
+          (define updated-count (add1 (letter-count-count (first llc))))
+          (define updated-lc (make-letter-count letter updated-count)))
+    (cons updated-lc (rest llc))))
 
 
-(define (init-subdictionary word llc)
+(define (init-subdictionary word lolos)
   ; String [ListOf ListOf String] -> [ListOf ListOf String]
-  (cons (list word) llc))
+  (cons (list word) lolos))
 
 
-(define (compile-subdictionaries word llc)
+(define (compile-subdictionaries word lolos)
   ; String [ListOf ListOf String] -> [ListOf ListOf String]
   ; adds a String entry to the leading dictionary
-  (cons (cons word (first llc)) (rest llc)))
+  (cons (cons word (first lolos)) (rest lolos)))
 
 
 (define (max-count llc)
