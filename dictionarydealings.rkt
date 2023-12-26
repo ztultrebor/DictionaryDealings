@@ -1,6 +1,6 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname dictionarydealings) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+#reader(lib "htdp-intermediate-reader.ss" "lang")((modname dictionarydealings) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
 (require 2htdp/batch-io)
 
 ; A Dictionary is a List-of-strings.
@@ -50,6 +50,28 @@
     [else  (letter-count-letter (first llc)) (letter-count-count (first llc))
            ... (fn-wit-letter-count (rest llc))]))
 
+
+; abstract functions
+
+
+(define (recursive dicto f1 f2)
+  ; [ListOf String] -> [ListOf X]
+  ; assembles a [ListOf X] associated with a given Dictionary
+  (local (
+          (define list-of-results
+            ; this is the [ListOf X], constructed from right to left
+            (cond
+              [(empty? (rest dicto)) '()]
+              [else (recursive (rest dicto) f1 f2)])))
+    ; - IN -
+    (cond
+      [(empty? (rest dicto)) (f1 (first dicto) list-of-results)]
+      [(starts-with=? (first dicto) (second dicto))
+       (f2 (first dicto) list-of-results)]
+      [else (f1 (first dicto) list-of-results)])))
+
+
+
 ; functions
 
 (define (starts-with# c dicto)
@@ -68,6 +90,7 @@
 
 
 (define (count-by-letter dicto)
+  ; !!! abstract this!
   ; Dictionary -> ListOfLetterCounts
   ; assembles a ListOfLetterCounts associated with a given Dictionary
   (cond
@@ -108,30 +131,10 @@
 
 
 (define (words-by-leading-letter dicto)
-  ; Dictionary -> ListOfDictionaries
-  ; assembles a ListOfDictionaries associated with a given Dictionary,
-  ;      one per leading letter
-  (cond
-    ; We begin construction of the ListOfDictionaries only after completely
-    ;     recursing through the Dictionary. The first step is to initialize
-    ;     a Dictionary for the leading letter of the final word, and add
-    ;     that final word to it.
-    [(empty? (rest dicto)) (list (list (first dicto)))]
-    ; If the leading letter of the first and second elements remaining in the
-    ;     Dictionary are equal, we simply add the first remaining word to the
-    ;     active Dictionary. We do this in an auxiliary function,
-    ;     compile-subdictionaries
-    [(starts-with=? (first dicto) (second dicto))
-     (compile-subdictionaries (first dicto)
-                              (words-by-leading-letter (rest dicto)))]
-    ; Else the leading letter of the first and second elements remaining
-    ;     in the Dictionary are different. We now need to close out the
-    ;     current Dictionary and initialize a new one for the prior
-    ;     (lowercase) letter in reverse alphabetical order,
-    ;     ading the first remaining word to it.
-    [(not (starts-with=? (first dicto) (second dicto)))
-     (cons (list (first dicto))
-           (words-by-leading-letter (rest dicto)))]))
+  ; [ListOf String]
+  ; [String [ListOf ListOf String] -> [ListOf ListOf String]]
+  ; [String [ListOf ListOf String] -> [ListOf ListOf String]]
+  (recursive dicto in init-subdictionary compile-subdictionaries))
 ; checks
 (check-expect (words-by-leading-letter (list "a"))
               (list (list "a")))
@@ -141,6 +144,17 @@
               (list (list "a" "ab" "abc")))
 (check-expect (words-by-leading-letter (list "a" "ab" "Abc" "b" "bb"))
               (list (list "a" "ab" "Abc") (list "b" "bb")))
+
+
+(define (init-subdictionary word llc)
+  ; String [ListOf ListOf String] -> [ListOf ListOf String]
+  (cons (list word) llc))
+
+
+(define (compile-subdictionaries word llc)
+  ; String [ListOf ListOf String] -> [ListOf ListOf String]
+  ; adds a String entry to the leading dictionary
+  (cons (cons word (first llc)) (rest llc)))
 
 
 (define (starts-with=? str1 str2)
@@ -161,7 +175,7 @@
          (+ (letter-count-count (first llc)) 1))
         (rest llc)))
 
-
+#;
 (define (compile-subdictionaries word llc)
   ; ListOfDictionaries -> ListOfDictionaries
   ; adds a String entry to the leading dictionary
