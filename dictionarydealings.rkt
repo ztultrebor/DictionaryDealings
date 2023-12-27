@@ -1,6 +1,6 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-intermediate-reader.ss" "lang")((modname dictionarydealings) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+#reader(lib "htdp-intermediate-lambda-reader.ss" "lang")((modname dictionarydealings) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
 (require 2htdp/batch-io)
 
 
@@ -83,16 +83,13 @@
 (define (starts-with# c dicto)
   ;Letter Dictionary -> Natural
   ; counts how many words in Dictionary begin with Letter
-  (cond
-    [(empty? dicto) 0]
-    [(string-ci<? c (string-ith (first dicto) 0)) 0]
-    [(string-ci=? c (string-ith (first dicto) 0))
-     (+ 1 (starts-with# c (rest dicto)))]
-    [else (starts-with# c (rest dicto))]))
+  (foldl (lambda (w x)
+           (+ (if (starts-with=? c w) 1 0) x))
+         0 dicto))
 (check-expect (starts-with# "c" (list "cat" "cheese" "dog" )) 2)
 (check-expect (starts-with# "c" (list "cheese" "cat" "dog" )) 2)
-(check-expect (starts-with# "c" (list "cat" "dog" "cheese")) 1)
-(check-expect (starts-with# "c" (list "dog" "cat" "cheese")) 0)
+(check-expect (starts-with# "c" (list "cat" "dog" "cheese")) 2)
+(check-expect (starts-with# "c" (list "dog" "cat" "cheese")) 2)
 
 
 (define (most-frequent dicto)
